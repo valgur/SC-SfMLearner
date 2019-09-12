@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-from torch import sigmoid
 from torch.nn.init import xavier_uniform_, zeros_
 
 
@@ -53,5 +52,5 @@ class PoseNet(nn.Module):
         pose = self.pose_pred(out_conv7)
         pose = pose.mean(3).mean(2)
         pose = 0.01 * pose.view(pose.size(0), 6)
- 
+
         return pose

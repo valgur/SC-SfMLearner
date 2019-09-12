@@ -1,12 +1,11 @@
-from __future__ import division
+from __future__ import absolute_import, division, print_function
+
 import shutil
+
 import numpy as np
 import torch
-from path import Path
-import datetime
-from collections import OrderedDict
 from matplotlib import cm
-from matplotlib.colors import ListedColormap, LinearSegmentedColormap
+from matplotlib.colors import LinearSegmentedColormap, ListedColormap
 
 
 def high_res_colormap(low_res_cmap, resolution=1000, max_value=1):

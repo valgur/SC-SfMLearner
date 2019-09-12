@@ -1,22 +1,23 @@
+from __future__ import absolute_import, division, print_function
+
 import argparse
-import time
 import csv
-from path import Path
 import datetime
+import time
 
 import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
 import torch.optim
 import torch.utils.data
-import custom_transforms
-
-import models
-from utils import save_checkpoint
-from loss_functions import compute_smooth_loss, compute_photo_and_geometry_loss, compute_errors
-from logger import TermLogger, AverageMeter
+from path import Path
 from tensorboardX import SummaryWriter
 
+from sc_sfmlearner import custom_transforms
+from sc_sfmlearner import models
+from sc_sfmlearner.logger import AverageMeter, TermLogger
+from sc_sfmlearner.loss_functions import compute_errors, compute_photo_and_geometry_loss, compute_smooth_loss
+from sc_sfmlearner.utils import save_checkpoint
 
 parser = argparse.ArgumentParser(description='Unsupervised Scale-consistent Depth and Ego-motion Learning from Monocular Video (KITTI and CityScapes)',
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -81,9 +82,9 @@ def main():
     global best_error, n_iter, device
     args = parser.parse_args()
     if args.dataset_format == 'stacked':
-        from datasets.stacked_sequence_folders import SequenceFolder
+        from sc_sfmlearner.datasets.stacked_sequence_folders import SequenceFolder
     elif args.dataset_format == 'sequential':
-        from datasets.sequence_folders import SequenceFolder
+        from sc_sfmlearner.datasets.sequence_folders import SequenceFolder
     timestamp = datetime.datetime.now().strftime("%m-%d-%H:%M")
     args.save_path = 'checkpoints'/Path(args.name)/timestamp
     print('=> will save everything to {}'.format(args.save_path))
@@ -114,7 +115,7 @@ def main():
 
     # if no Groundtruth is avalaible, Validation set is the same type as training set to measure photometric loss from warping
     if args.with_gt:
-        from datasets.validation_folders import ValidationSet
+        from sc_sfmlearner.datasets.validation_folders import ValidationSet
         val_set = ValidationSet(
             args.data,
             transform=valid_transform
@@ -187,9 +188,9 @@ def main():
     if args.pretrained_disp:
         logger.reset_valid_bar()
         if args.with_gt:
-            errors, error_names = validate_with_gt(args, val_loader, disp_net, 0, logger, output_writers)
+            errors, error_names = validate_with_gt(args, val_loader, disp_net, 0, logger)
         else:
-            errors, error_names = validate_without_gt(args, val_loader, disp_net, pose_net, 0, logger, output_writers)
+            errors, error_names = validate_without_gt(args, val_loader, disp_net, pose_net, 0, logger)
         for error, name in zip(errors, error_names):
             training_writer.add_scalar(name, error, 0)
         error_string = ', '.join('{} : {:.3f}'.format(name, error) for name, error in zip(error_names[2:9], errors[2:9]))
@@ -255,7 +256,7 @@ def train(args, train_loader, disp_net, pose_net, optimizer, epoch_size, logger,
 
     for i, (tgt_img, ref_imgs, intrinsics, intrinsics_inv) in enumerate(train_loader):
         log_losses = i > 0 and n_iter % args.print_freq == 0
-        
+
         # measure data loading time
         data_time.update(time.time() - end)
         tgt_img = tgt_img.to(device)
@@ -266,7 +267,7 @@ def train(args, train_loader, disp_net, pose_net, optimizer, epoch_size, logger,
         tgt_depth, ref_depths = compute_depth(disp_net, tgt_img, ref_imgs)
         poses, poses_inv = compute_pose_with_inv(pose_net, tgt_img, ref_imgs)
 
-        loss_1, loss_3 = compute_photo_and_geometry_loss(tgt_img, ref_imgs, intrinsics, tgt_depth, ref_depths, 
+        loss_1, loss_3 = compute_photo_and_geometry_loss(tgt_img, ref_imgs, intrinsics, tgt_depth, ref_depths,
                                                         args.with_mask, poses, poses_inv, args.num_scales,
                                                         args.with_ssim, rotation_mode='euler', padding_mode='zeros')
 
@@ -336,8 +337,8 @@ def validate_without_gt(args, val_loader, disp_net, pose_net, epoch, logger):
             ref_depths.append(ref_depth)
 
         poses, poses_inv = compute_pose_with_inv(pose_net, tgt_img, ref_imgs)
-        
-        loss_1, loss_3 = compute_photo_and_geometry_loss(tgt_img, ref_imgs, intrinsics, tgt_depth, ref_depths, 
+
+        loss_1, loss_3 = compute_photo_and_geometry_loss(tgt_img, ref_imgs, intrinsics, tgt_depth, ref_depths,
                                                         args.with_mask, poses, poses_inv, args.num_scales,
                                                         args.with_ssim, rotation_mode='euler', padding_mode='zeros')
 
@@ -367,7 +368,7 @@ def validate_with_gt(args, val_loader, disp_net, epoch, logger):
     batch_time = AverageMeter()
     error_names = ['abs_diff', 'abs_rel', 'sq_rel', 'a1', 'a2', 'a3']
     errors = AverageMeter(i=len(error_names))
-   
+
     # switch to evaluate mode
     disp_net.eval()
 
@@ -399,7 +400,7 @@ def compute_depth(disp_net, tgt_img, ref_imgs):
     for ref_img in ref_imgs:
         ref_depth = [1/disp for disp in disp_net(ref_img)]
         ref_depths.append(ref_depth)
-    
+
     return tgt_depth, ref_depths
 
 def compute_pose_with_inv(pose_net, tgt_img, ref_imgs):

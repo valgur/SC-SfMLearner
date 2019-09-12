@@ -1,8 +1,11 @@
-import torch.utils.data as data
+from __future__ import absolute_import, division, print_function
+
+import random
+
 import numpy as np
+import torch.utils.data as data
 from imageio import imread
 from path import Path
-import random
 
 
 def load_as_float(path):

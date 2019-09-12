@@ -1,10 +1,12 @@
-from __future__ import division
-import torch
+from __future__ import absolute_import, division, print_function
+
 import random
+
 import numpy as np
+import torch
 from scipy.misc import imresize
 
-'''Set of tranform random routines that takes list of inputs as arguments,
+'''Set of transform random routines that takes list of inputs as arguments,
 in order to have random but coherent transformations.'''
 
 

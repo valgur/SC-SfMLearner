@@ -1,5 +1,7 @@
-import torch.utils.data as data
+from __future__ import absolute_import, division, print_function
+
 import numpy as np
+import torch.utils.data as data
 from imageio import imread
 from path import Path
 

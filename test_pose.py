@@ -1,11 +1,15 @@
-import torch
-from scipy.misc import imresize
-import numpy as np
-from path import Path
+from __future__ import absolute_import, division, print_function
+
 import argparse
+
+import numpy as np
+import torch
+from path import Path
+from scipy.misc import imresize
 from tqdm import tqdm
-import models
-from inverse_warp import pose_vec2mat
+
+from sc_sfmlearner import models
+from sc_sfmlearner.inverse_warp import pose_vec2mat
 from kitti_eval.pose_evaluation_utils import test_framework_KITTI as test_framework
 
 parser = argparse.ArgumentParser(description='Script for PoseNet testing with corresponding groundTruth from KITTI Odometry',
@@ -39,7 +43,7 @@ def main():
     dataset_dir = Path(args.dataset_dir)
     framework = test_framework(dataset_dir, args.sequences, seq_length)
     print('{} snippets to test'.format(len(framework)))
-    
+
     errors = np.zeros((len(framework), 2), np.float32)
     if args.output_dir is not None:
         output_dir = Path(args.output_dir)
@@ -57,7 +61,7 @@ def main():
 
         tensor_imgs = []
         for i, img in enumerate(imgs):
-            img = ((torch.from_numpy(img).unsqueeze(0) / 255 - 0.5) / 0.5).to(device) 
+            img = ((torch.from_numpy(img).unsqueeze(0) / 255 - 0.5) / 0.5).to(device)
             tensor_imgs.append(img)
 
         global_pose = np.identity(4)
@@ -69,9 +73,9 @@ def main():
             pose_mat = pose_vec2mat(pose).squeeze(0).cpu().numpy()
             pose_mat = np.vstack([pose_mat, np.array([0, 0, 0, 1])])
 
-            global_pose = global_pose @ np.linalg.inv(pose_mat)
+            global_pose = np.matmul(global_pose, np.linalg.inv(pose_mat))
             poses.append(global_pose[0:3,:])
-            
+
         final_poses = np.stack(poses, axis=0)
 
         if args.output_dir is not None:
@@ -100,7 +104,7 @@ def compute_pose_error(gt, pred):
     ATE = np.linalg.norm((gt[:,:,-1] - scale_factor * pred[:,:,-1]).reshape(-1))
     for gt_pose, pred_pose in zip(gt, pred):
         # Residual matrix to which we compute angle's sin and cos
-        R = gt_pose[:,:3] @ np.linalg.inv(pred_pose[:,:3])
+        R = np.matmul(gt_pose[:,:3], np.linalg.inv(pred_pose[:,:3]))
         s = np.linalg.norm([R[0,1]-R[1,0],
                             R[1,2]-R[2,1],
                             R[0,2]-R[2,0]])

@@ -1,9 +1,12 @@
-from __future__ import division
-import torch
-from torch import nn
-import torch.nn.functional as F
-from inverse_warp import inverse_warp2
+from __future__ import absolute_import, division, print_function
+
 import math
+
+import torch
+import torch.nn.functional as F
+from torch import nn
+
+from sc_sfmlearner.inverse_warp import inverse_warp2
 
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
@@ -26,15 +29,15 @@ def compute_photo_and_geometry_loss(tgt_img, ref_imgs, intrinsics, tgt_depth, re
 
             photo_loss1, geometry_loss1 = compute_pairwise_loss(tgt_img_scaled, ref_img_scaled, tgt_depth[s], ref_depth[s], pose, with_mask, intrinsic_scaled, with_ssim)
             photo_loss2, geometry_loss2 = compute_pairwise_loss(ref_img_scaled, tgt_img_scaled, ref_depth[s], tgt_depth[s], pose_inv, with_mask, intrinsic_scaled, with_ssim)
-            
+
             photo_loss += (photo_loss1 + photo_loss2)
             geometry_loss += (geometry_loss1 + geometry_loss2)
 
     return photo_loss, geometry_loss
 
 def compute_pairwise_loss(tgt_img, ref_img, tgt_depth, ref_depth, pose, with_mask, intrinsic, with_ssim, rotation_mode='euler', padding_mode='zeros'):
-    
-    ref_img_warped, valid_mask, projected_depth, computed_depth = inverse_warp2(ref_img, tgt_depth, ref_depth, 
+
+    ref_img_warped, valid_mask, projected_depth, computed_depth = inverse_warp2(ref_img, tgt_depth, ref_depth,
                                                                 pose, intrinsic, rotation_mode, padding_mode)
 
     diff_img = (tgt_img - ref_img_warped).abs() * valid_mask
@@ -138,7 +141,7 @@ def create_gaussian_window(window_size, channel):
         gauss = torch.Tensor([math.exp(-(x - window_size//2)**2/float(2*sigma**2)) for x in range(window_size)])
         return gauss/gauss.sum()
     _1D_window = _gaussian(window_size, 1.5).unsqueeze(1)
-    _2D_window = _1D_window@(_1D_window.t()).float().unsqueeze(0).unsqueeze(0)
+    _2D_window = _1D_window.matmul(_1D_window.t()).float().unsqueeze(0).unsqueeze(0)
     window = _2D_window.expand(channel, 1, window_size, window_size).contiguous()
     return window
 

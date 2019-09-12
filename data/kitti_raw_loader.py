@@ -1,8 +1,11 @@
-from __future__ import division
-import numpy as np
-from path import Path
-import scipy.misc
+from __future__ import absolute_import, division, print_function
+
 from collections import Counter
+
+import numpy as np
+import numpy.linalg as la
+import scipy.misc
+from path import Path
 
 
 def rotx(t):
@@ -152,7 +155,7 @@ class KittiRawLoader(object):
             imu2velo_mat = transform_from_rot_trans(imu2velo['R'], imu2velo['T'])
             cam_2rect_mat = transform_from_rot_trans(cam2cam['R_rect_00'], np.zeros(3))
 
-            imu2cam = cam_2rect_mat @ velo2cam_mat @ imu2velo_mat
+            imu2cam = la.multi_dot(cam_2rect_mat, velo2cam_mat, imu2velo_mat)
 
             for n, f in enumerate(oxts):
                 metadata = np.genfromtxt(f)
@@ -168,7 +171,7 @@ class KittiRawLoader(object):
                 if origin is None:
                     origin = pose_matrix
 
-                odo_pose = imu2cam @ np.linalg.inv(origin) @ pose_matrix @ np.linalg.inv(imu2cam)
+                odo_pose = la.multi_dot(imu2cam, la.inv(origin), pose_matrix, la.inv(imu2cam))
                 scene_data['pose'].append(odo_pose[:3])
 
             sample = self.load_image(scene_data, 0)
@@ -194,7 +197,7 @@ class KittiRawLoader(object):
             cum_speed = np.zeros(3)
             for i, speed in enumerate(scene_data['speed']):
                 cum_speed += speed
-                speed_mag = np.linalg.norm(cum_speed)
+                speed_mag = la.norm(cum_speed)
                 if speed_mag > self.min_speed:
                     frame_id = scene_data['frame_id'][i]
                     yield construct_sample(scene_data, i, frame_id)

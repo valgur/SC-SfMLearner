@@ -1,11 +1,15 @@
-import torch
-from skimage.transform import resize as imresize
-from imageio import imread
-import numpy as np
-from path import Path
+from __future__ import absolute_import, division, print_function
+
 import argparse
+
+import numpy as np
+import torch
+from imageio import imread
+from path import Path
+from skimage.transform import resize as imresize
 from tqdm import tqdm
-import models
+
+from sc_sfmlearner import models
 
 parser = argparse.ArgumentParser(description='Script for DispNet testing with corresponding groundTruth',
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -45,7 +49,7 @@ def main():
     with open(args.dataset_list, 'r') as f:
         test_files = list(f.read().splitlines())
     print('{} files to test'.format(len(test_files)))
-  
+
     output_dir = Path(args.output_dir)
     output_dir.makedirs_p()
 
@@ -54,9 +58,9 @@ def main():
         pred_disp = disp_net(tgt_img).cpu().numpy()[0,0]
 
         if j == 0:
-            predictions = np.zeros((len(test_files), *pred_disp.shape))
+            predictions = np.zeros([len(test_files)] + list(pred_disp.shape))
         predictions[j] = 1/pred_disp
-    
+
     np.save(output_dir/'predictions.npy', predictions)
 
 

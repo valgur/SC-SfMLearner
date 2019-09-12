@@ -1,11 +1,14 @@
-# Mostly based on the code written by Clement Godard: 
+# Mostly based on the code written by Clement Godard:
 # https://github.com/mrharicot/monodepth/blob/master/utils/evaluation_utils.py
-import numpy as np
-# import pandas as pd
+from __future__ import absolute_import, division, print_function
+
 import os
-import cv2
 from collections import Counter
-import pickle
+
+import cv2
+import numpy as np
+from scipy.interpolate import LinearNDInterpolator
+
 
 def compute_errors(gt, pred):
     thresh = np.maximum((gt / pred), (pred / gt))
@@ -46,7 +49,7 @@ def convert_disps_to_depths_kitti(gt_disparities, pred_disparities):
     gt_depths = []
     pred_depths = []
     pred_disparities_resized = []
-    
+
     for i in range(len(gt_disparities)):
         gt_disp = gt_disparities[i]
         height, width = gt_disp.shape
@@ -54,7 +57,7 @@ def convert_disps_to_depths_kitti(gt_disparities, pred_disparities):
         pred_disp = pred_disparities[i]
         pred_disp = width * cv2.resize(pred_disp, (width, height), interpolation=cv2.INTER_LINEAR)
 
-        pred_disparities_resized.append(pred_disp) 
+        pred_disparities_resized.append(pred_disp)
 
         mask = gt_disp > 0
 
@@ -90,7 +93,7 @@ def read_file_data(files, data_root):
         date = splits[0]
         im_id = splits[4][:10]
         file_root = '{}/{}'
-        
+
         im = filename
         vel = '{}/{}/velodyne_points/data/{}.bin'.format(splits[0], splits[1], im_id)
 
@@ -207,7 +210,7 @@ def generate_depth_map(calib_dir, velo_file_name, im_shape, cam=2, interp=False,
 
     # find the duplicate points and choose the closest depth
     inds = sub2ind(depth.shape, velo_pts_im[:, 1], velo_pts_im[:, 0])
-    dupe_inds = [item for item, count in Counter(inds).iteritems() if count > 1]
+    dupe_inds = [item for item, count in Counter(inds).items() if count > 1]
     for dd in dupe_inds:
         pts = np.where(inds==dd)[0]
         x_loc = int(velo_pts_im[pts[0], 0])

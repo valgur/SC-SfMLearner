@@ -1,5 +1,7 @@
 # Mostly based on the code written by Clement Godard:
 # https://github.com/mrharicot/monodepth/blob/master/utils/evaluation_utils.py
+from __future__ import absolute_import, division, print_function
+
 import numpy as np
 from path import Path
 from scipy.misc import imread
@@ -19,7 +21,7 @@ class test_framework_KITTI(object):
                 poses = np.stack([pose_list[i] for i in snippet_indices])
                 first_pose = poses[0]
                 poses[:,:,-1] -= first_pose[:,-1]
-                compensated_poses = np.linalg.inv(first_pose[:,:3]) @ poses
+                compensated_poses = np.matmul(np.linalg.inv(first_pose[:,:3]), poses)
 
                 yield {'imgs': imgs,
                        'path': img_list[0],

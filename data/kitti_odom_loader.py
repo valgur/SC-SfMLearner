@@ -1,9 +1,11 @@
-from __future__ import division
-import numpy as np
-from path import Path
-import scipy.misc
-from collections import Counter
+from __future__ import absolute_import, division, print_function
+
 import os
+
+import numpy as np
+import scipy.misc
+from path import Path
+
 
 class KittiOdomLoader(object):
     def __init__(self,
@@ -30,7 +32,7 @@ class KittiOdomLoader(object):
         train_scenes = []
         for c in self.cam_ids:
             scene_data = {'cid': c, 'dir': drive, 'frame_id': [], 'rel_path': drive.name + '_' + c}
-            
+
             img_dir = Path(scene_data['dir']/'image_{}/'.format(scene_data['cid']))
             scene_data['frame_id'] = [x.split('.')[0] for x in os.listdir(img_dir)]
 
@@ -70,6 +72,3 @@ class KittiOdomLoader(object):
         calib[1,:] *=  zoom_y
 
         return calib
-
-
- 

@@ -1,10 +1,12 @@
+from __future__ import absolute_import, division, print_function
+
 import argparse
-import scipy.misc
+
 import numpy as np
-from pebble import ProcessPool
-import sys
-from tqdm import tqdm
+import scipy.misc
 from path import Path
+from pebble import ProcessPool
+from tqdm import tqdm
 
 parser = argparse.ArgumentParser()
 parser.add_argument("dataset_dir", metavar='DIR',

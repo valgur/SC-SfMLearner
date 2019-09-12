@@ -1,9 +1,10 @@
-from __future__ import division
+from __future__ import absolute_import, division, print_function
+
 import json
+
 import numpy as np
 import scipy.misc
 from path import Path
-from tqdm import tqdm
 
 
 class cityscapes_loader(object):
