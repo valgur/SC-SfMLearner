@@ -1,5 +1,8 @@
-TRAIN_SET=/media/bjw/Disk/Dataset/kitti_256/
-python train.py $TRAIN_SET \
+#!/bin/bash
+set -euo pipefail
+source .env
+
+python train.py "$KITTI_RAW_256" \
 --pretrained-disp= \
 --pretrained-pose= \
 --dispnet DispResNet \
