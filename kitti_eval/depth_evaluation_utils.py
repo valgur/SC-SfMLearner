@@ -2,11 +2,11 @@
 # https://github.com/mrharicot/monodepth/blob/master/utils/evaluation_utils.py
 from __future__ import absolute_import, division, print_function
 
-import os
 from collections import Counter
 
 import cv2
 import numpy as np
+from path import Path
 from scipy.interpolate import LinearNDInterpolator
 
 
@@ -38,9 +38,10 @@ width_to_focal[1224] = 707.0493
 width_to_focal[1238] = 718.3351
 
 def load_gt_disp_kitti(path):
+    path = Path(path)
     gt_disparities = []
     for i in range(200):
-        disp = cv2.imread(path + "/training/disp_noc_0/" + str(i).zfill(6) + "_10.png", -1)
+        disp = cv2.imread(path / ("/training/disp_noc_0/" + str(i).zfill(6) + "_10.png"), -1)
         disp = disp.astype(np.float32) / 256
         gt_disparities.append(disp)
     return gt_disparities
@@ -80,6 +81,7 @@ def read_text_lines(file_path):
     return lines
 
 def read_file_data(files, data_root):
+    data_root = Path(data_root)
     gt_files = []
     gt_calib = []
     im_sizes = []
@@ -92,16 +94,15 @@ def read_file_data(files, data_root):
 #         camera_id = filename[-1]   # 2 is left, 3 is right
         date = splits[0]
         im_id = splits[4][:10]
-        file_root = '{}/{}'
 
         im = filename
         vel = '{}/{}/velodyne_points/data/{}.bin'.format(splits[0], splits[1], im_id)
 
-        if os.path.isfile(data_root + im):
-            gt_files.append(data_root + vel)
-            gt_calib.append(data_root + date + '/')
-            im_sizes.append(cv2.imread(data_root + im).shape[:2])
-            im_files.append(data_root + im)
+        if (data_root / im).isfile():
+            gt_files.append(data_root / vel)
+            gt_calib.append(data_root / date)
+            im_sizes.append(cv2.imread(data_root / im).shape[:2])
+            im_files.append(data_root / im)
             cams.append(2)
         else:
             num_probs += 1
@@ -149,7 +150,7 @@ def read_calib_file(path):
 
 
 def get_focal_length_baseline(calib_dir, cam=2):
-    cam2cam = read_calib_file(calib_dir + 'calib_cam_to_cam.txt')
+    cam2cam = read_calib_file(calib_dir / 'calib_cam_to_cam.txt')
     P2_rect = cam2cam['P_rect_02'].reshape(3,4)
     P3_rect = cam2cam['P_rect_03'].reshape(3,4)
 
@@ -163,6 +164,8 @@ def get_focal_length_baseline(calib_dir, cam=2):
         focal_length = P2_rect[0,0]
     elif cam==3:
         focal_length = P3_rect[0,0]
+    else:
+        raise KeyError
 
     return focal_length, baseline
 
@@ -173,8 +176,9 @@ def sub2ind(matrixSize, rowSub, colSub):
 
 def generate_depth_map(calib_dir, velo_file_name, im_shape, cam=2, interp=False, vel_depth=False):
     # load calibration files
-    cam2cam = read_calib_file(calib_dir + 'calib_cam_to_cam.txt')
-    velo2cam = read_calib_file(calib_dir + 'calib_velo_to_cam.txt')
+    calib_dir= Path(calib_dir)
+    cam2cam = read_calib_file(calib_dir / 'calib_cam_to_cam.txt')
+    velo2cam = read_calib_file(calib_dir / 'calib_velo_to_cam.txt')
     velo2cam = np.hstack((velo2cam['R'].reshape(3,3), velo2cam['T'][..., np.newaxis]))
     velo2cam = np.vstack((velo2cam, np.array([0, 0, 0, 1.0])))
 

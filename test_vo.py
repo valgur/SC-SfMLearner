@@ -42,7 +42,7 @@ def main():
     pose_net.load_state_dict(weights_pose['state_dict'], strict=False)
     pose_net.eval()
 
-    image_dir = Path(args.dataset_dir + args.sequence + "/image_2/")
+    image_dir = Path(args.dataset_dir) / args.sequence / "image_2"
     output_dir = Path(args.output_dir)
     output_dir.makedirs_p()
 
@@ -69,7 +69,7 @@ def main():
         tensor_img1 = tensor_img2
 
     poses = np.concatenate(poses, axis=0)
-    filename = Path(args.output_dir + args.sequence + ".txt")
+    filename = Path(args.output_dir) / (args.sequence + ".txt")
     np.savetxt(filename, poses, delimiter=' ', fmt='%1.8e')
 
 if __name__ == '__main__':

@@ -54,7 +54,7 @@ def main():
     output_dir.makedirs_p()
 
     for j in tqdm(range(len(test_files))):
-        tgt_img = load_tensor_image(dataset_dir + test_files[j], args)
+        tgt_img = load_tensor_image(dataset_dir / test_files[j], args)
         pred_disp = disp_net(tgt_img).cpu().numpy()[0,0]
 
         if j == 0:
