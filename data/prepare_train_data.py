@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function
 import argparse
 
 import numpy as np
-import scipy.misc
+from skimage.io import imsave
 from path import Path
 from pebble import ProcessPool
 from tqdm import tqdm
@@ -46,7 +46,7 @@ def dump_example(args, scene):
         for sample in data_loader.get_scene_imgs(scene_data):
             img, frame_nb = sample["img"], sample["id"]
             dump_img_file = dump_dir/'{}.jpg'.format(frame_nb)
-            scipy.misc.imsave(dump_img_file, img)
+            imsave((dump_img_file * 255).astype(int), img)
             if "pose" in sample.keys():
                 poses.append(sample["pose"].tolist())
             if "depth" in sample.keys():
@@ -66,7 +66,7 @@ def main():
     global data_loader
 
     if args.dataset_format == 'kitti_raw':
-        from kitti_raw_loader import KittiRawLoader
+        from . kitti_raw_loader import KittiRawLoader
         data_loader = KittiRawLoader(args.dataset_dir,
                                      static_frames_file=args.static_frames,
                                      img_height=args.height,
@@ -76,14 +76,14 @@ def main():
                                      depth_size_ratio=args.depth_size_ratio)
 
     if args.dataset_format == 'kitti_odom':
-        from kitti_odom_loader import KittiOdomLoader
+        from . kitti_odom_loader import KittiOdomLoader
         data_loader = KittiOdomLoader(args.dataset_dir,
                                      img_height=args.height,
                                      img_width=args.width,
                                      )
 
     if args.dataset_format == 'cityscapes':
-        from cityscapes_loader import cityscapes_loader
+        from . cityscapes_loader import cityscapes_loader
         data_loader = cityscapes_loader(args.dataset_dir,
                                         img_height=args.height,
                                         img_width=args.width)

@@ -5,7 +5,7 @@ import argparse
 import numpy as np
 import torch
 from path import Path
-from scipy.misc import imresize
+from skimage.transform import resize
 from tqdm import tqdm
 
 from sc_sfmlearner import models
@@ -55,7 +55,7 @@ def main():
 
         h,w,_ = imgs[0].shape
         if (not args.no_resize) and (h != args.img_height or w != args.img_width):
-            imgs = [imresize(img, (args.img_height, args.img_width)).astype(np.float32) for img in imgs]
+            imgs = [resize(img, (args.img_height, args.img_width)).astype(np.float32) for img in imgs]
 
         imgs = [np.transpose(img, (2,0,1)) for img in imgs]
 

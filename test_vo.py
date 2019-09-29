@@ -5,7 +5,7 @@ import argparse
 import numpy as np
 from imageio import imread
 from path import Path
-from scipy.misc import imresize
+from skimage.transform import resize
 from tqdm import tqdm
 
 from sc_sfmlearner import models
@@ -28,7 +28,7 @@ def load_tensor_image(filename, args):
     img = imread(filename).astype(np.float32)
     h,w,_ = img.shape
     if (not args.no_resize) and (h != args.img_height or w != args.img_width):
-        img = imresize(img, (args.img_height, args.img_width)).astype(np.float32)
+        img = resize(img, (args.img_height, args.img_width)).astype(np.float32)
     img = np.transpose(img, (2, 0, 1))
     tensor_img = ((torch.from_numpy(img).unsqueeze(0)/255 - 0.5)/0.5).to(device)
     return tensor_img

@@ -4,7 +4,7 @@ from __future__ import absolute_import, division, print_function
 
 import numpy as np
 from path import Path
-from scipy.misc import imread
+from skimage.io import imread
 from tqdm import tqdm
 
 
