@@ -15,9 +15,10 @@ from tensorboardX import SummaryWriter
 
 from sc_sfmlearner import custom_transforms
 from sc_sfmlearner import models
+from sc_sfmlearner.inverse_warp import inverse_warp
 from sc_sfmlearner.logger import AverageMeter, TermLogger
 from sc_sfmlearner.loss_functions import compute_errors, compute_photo_and_geometry_loss, compute_smooth_loss
-from sc_sfmlearner.utils import save_checkpoint
+from sc_sfmlearner.utils import save_checkpoint, tensor2array
 
 parser = argparse.ArgumentParser(description='Unsupervised Scale-consistent Depth and Ego-motion Learning from Monocular Video (KITTI and CityScapes)',
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -71,6 +72,8 @@ parser.add_argument('-c', '--geometry-consistency-weight', type=float, help='wei
 parser.add_argument('--with-ssim', type=bool, help='with ssim or not', metavar='W', default=True, choices=[True, False])
 parser.add_argument('--with-mask', type=bool, metavar='W', default=True, choices=[True, False],
                     help='with the the mask for moving objects and occlusions or not')
+parser.add_argument('-f', '--training-output-freq', type=int, help='frequency for outputting dispnet outputs and warped imgs, if 0 will not output',
+                    metavar='N', default=0)
 parser.add_argument('--name', dest='name', type=str, required=True,
                     help='name of the experiment, checkpoints are stored in checpoints/name')
 
@@ -262,6 +265,7 @@ def train(args, train_loader, disp_net, pose_net, optimizer, epoch_size, logger,
         tgt_img = tgt_img.to(device)
         ref_imgs = [img.to(device) for img in ref_imgs]
         intrinsics = intrinsics.to(device)
+        intrinsics_inv = intrinsics_inv.to(device)
 
         # compute output
         tgt_depth, ref_depths = compute_depth(disp_net, tgt_img, ref_imgs)
@@ -275,11 +279,35 @@ def train(args, train_loader, disp_net, pose_net, optimizer, epoch_size, logger,
 
         loss = w1*loss_1 + w2*loss_2 + w3*loss_3
 
-        if log_losses:
-            train_writer.add_scalar('photo_loss', loss_1.item(), n_iter)
-            train_writer.add_scalar('smooth_loss', loss_2.item(), n_iter)
-            train_writer.add_scalar('geometry_loss', loss_3.item(), n_iter)
-            train_writer.add_scalar('total_loss', loss.item(), n_iter)
+        with torch.no_grad():
+            if log_losses:
+                train_writer.add_scalar('photo_loss', loss_1.item(), n_iter)
+                train_writer.add_scalar('smooth_loss', loss_2.item(), n_iter)
+                train_writer.add_scalar('geometry_loss', loss_3.item(), n_iter)
+                train_writer.add_scalar('total_loss', loss.item(), n_iter)
+
+            if args.training_output_freq > 0 and n_iter % args.training_output_freq == 0:
+                train_writer.add_image('train Input', tensor2array(tgt_img[0]), n_iter)
+                train_writer.add_image('train Depth Output',
+                                       tensor2array(tgt_depth[0].data[0].cpu(), colormap='bone'), n_iter)
+                train_writer.add_image('train Disparity Output',
+                                       tensor2array((1/tgt_depth[0].data[0]).cpu(), colormap='bone'), n_iter)
+                for k, ref_depth in enumerate(ref_depths):
+                    train_writer.add_image('train Depth Reference {}'.format(k),
+                                           tensor2array(ref_depth[0].data[0].cpu(), colormap='bone'), n_iter)
+                    train_writer.add_image('train Disparity Reference {}'.format(k),
+                                           tensor2array((1/ref_depth[0].data[0]).cpu(), colormap='bone'), n_iter)
+                # log warped images
+                for j, ref in enumerate(ref_imgs):
+                    ref_warped = inverse_warp(ref, tgt_depth[0][:,0], poses[j],
+                                              intrinsics, intrinsics_inv,
+                                              rotation_mode=args.rotation_mode,
+                                              padding_mode=args.padding_mode)[0][0]
+                    train_writer.add_image('train Warped Outputs {}'.format(j),
+                                           tensor2array(ref_warped.data.cpu()), n_iter)
+                    train_writer.add_image('train Diff Outputs {}'.format(j),
+                                           tensor2array(0.5*(tgt_img[0] - ref_warped).abs().data.cpu()), n_iter)
+
 
         # record loss and EPE
         losses.update(loss.item(), args.batch_size)
@@ -314,8 +342,6 @@ def validate_without_gt(args, val_loader, disp_net, pose_net, epoch, logger):
     losses = AverageMeter(i=4, precision=4)
 
     w1, w2, w3 = args.photo_loss_weight, args.smooth_loss_weight, args.geometry_consistency_weight
-    poses = np.zeros(((len(val_loader)-1) * args.batch_size * (args.sequence_length-1),6))
-    disp_values = np.zeros(((len(val_loader)-1) * args.batch_size * 3))
 
     # switch to evaluate mode
     disp_net.eval()
@@ -327,7 +353,6 @@ def validate_without_gt(args, val_loader, disp_net, pose_net, epoch, logger):
         tgt_img = tgt_img.to(device)
         ref_imgs = [img.to(device) for img in ref_imgs]
         intrinsics = intrinsics.to(device)
-        intrinsics_inv = intrinsics_inv.to(device)
 
         # compute output
         tgt_depth = [1 / disp_net(tgt_img)]

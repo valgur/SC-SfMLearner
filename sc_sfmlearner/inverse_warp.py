@@ -149,7 +149,7 @@ def pose_vec2mat(vec, rotation_mode='euler'):
     return transform_mat
 
 
-def inverse_warp(img, depth, pose, intrinsics, rotation_mode='euler', padding_mode='zeros'):
+def inverse_warp(img, depth, pose, intrinsics, intrinsics_inv, rotation_mode='euler', padding_mode='zeros'):
     """
     Inverse warp a source image to the target image plane.
     Args:
@@ -165,10 +165,11 @@ def inverse_warp(img, depth, pose, intrinsics, rotation_mode='euler', padding_mo
     check_sizes(depth, 'depth', 'BHW')
     check_sizes(pose, 'pose', 'B6')
     check_sizes(intrinsics, 'intrinsics', 'B33')
+    check_sizes(intrinsics_inv, 'intrinsics_inv', 'B33')
 
     batch_size, _, img_height, img_width = img.size()
 
-    cam_coords = pixel2cam(depth, intrinsics.inverse())  # [B,3,H,W]
+    cam_coords = pixel2cam(depth, intrinsics_inv)  # [B,3,H,W]
 
     pose_mat = pose_vec2mat(pose, rotation_mode)  # [B,3,4]
 
